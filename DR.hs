@@ -20,11 +20,12 @@ data DREpisode = DREpisode
   { programcardTitle      :: String
   , programcardSlug       :: String
   , hasPublicPrimaryAsset :: Bool
+  , directLink            :: Maybe String
   } deriving (Show)
 
 instance ToResult DREpisode where
   toResult ep =
-    Result (programcardTitle ep) Nothing Nothing Nothing (hasPublicPrimaryAsset ep) "DR"
+    Result (programcardTitle ep) Nothing (directLink ep) Nothing (hasPublicPrimaryAsset ep) "DR"
 
 instance FromJSON DREpisode where
   parseJSON =
@@ -32,7 +33,7 @@ instance FromJSON DREpisode where
       title <- o .: "ProgramcardTitle"
       slug <- o .: "ProgramcardSlug"
       public <- o .: "HasPublicPrimaryAsset"
-      return $ DREpisode title slug public
+      return $ DREpisode title slug public Nothing
 
 decodeEpisodes :: ByteString -> Either String [DREpisode]
 decodeEpisodes s = eitherDecode s >>= root >>= eps
@@ -52,9 +53,12 @@ decodeDR (Left err) = Left err
 decodeDR (Right response) =
   case drResult of
     Left x         -> Left $ "DR error:\n" ++ x
-    Right episodes -> Right . map toResult $ episodes
+    Right episodes -> Right . map (toResult . attachDirectUrl) $ episodes -- TODO: attachDirectUrl should ofc be part of searchDR
   where
     drResult = decodeEpisodes . responseBody' $ response
+
+attachDirectUrl :: DREpisode -> DREpisode
+attachDirectUrl ep = ep {directLink = Just "TODO:"}
 
 searchDR :: Query -> IO Response
 searchDR q = decodeDR . prefixError "DR:\n" <$> drData
