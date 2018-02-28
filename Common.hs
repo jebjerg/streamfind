@@ -11,7 +11,7 @@ import qualified Data.HashMap.Lazy      as HM
 import           Data.Monoid            ((<>))
 import           Data.Text              as T
 import           Types                  (EitherWWWResponse, Result, WWWResponse,
-                                         provider, title)
+                                         provider, title, url)
 
 eitherGetWith :: WWW.Options -> String -> IO EitherWWWResponse
 eitherGetWith = eitherWith WWW.getWith
@@ -40,4 +40,7 @@ extractKey k o =
     (HM.lookup (T.pack k) o)
 
 fmt :: Result -> String
-fmt r = provider r ++ ": " ++ title r
+fmt r = provider r ++ ": " ++ title r ++
+  case url r of
+    Nothing -> ""
+    Just u -> " @ " ++ u
