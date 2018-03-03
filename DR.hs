@@ -4,6 +4,10 @@ module DR where
 
 import           Common               (eitherGetWith, prefixError,
                                        responseBody')
+import           Types                (EitherWWWResponse, Error, Query,
+                                       Response, Result (..), ToResult,
+                                       toResult)
+
 import           Control.Lens         ((&), (.~))
 import           Data.Aeson           (FromJSON, Value, eitherDecode, parseJSON,
                                        withArray, withObject, (.:))
@@ -12,9 +16,6 @@ import           Data.ByteString.Lazy (ByteString)
 import           Data.List            (map)
 import           Data.Vector          (toList)
 import qualified Network.Wreq         as WWW
-import           Types                (EitherWWWResponse, Error, Query,
-                                       Response, Result (..), ToResult,
-                                       toResult)
 
 data DREpisode = DREpisode
   { programcardTitle      :: String
@@ -49,10 +50,21 @@ decodeEpisodes s = eitherDecode s >>= root >>= eps
     eps :: (FromJSON a) => Value -> Either String [a]
     eps = parseEither $ withArray "eps" $ mapM parseJSON . toList
 
--- "https://www.dr.dk/mu-online/api/1.3/list/view/quicksearch/" ++ query ++ "?limitprograms=" ++ show nPrograms ++ "%26limitepisodes=" ++ show nEpisodes ++ "%26orderBy=PrimaryBroadcastDay%26orderDescending=true"
 drApiUrl :: Integer -> Integer -> Query -> String
-drApiUrl nPrograms nEpisodes query = "http://localhost:1234/dr.json?" ++ query
+drApiUrl nPrograms nEpisodes query =
+  "https://www.dr.dk/mu-online/api/1.3/list/view/quicksearch/" ++
+  query ++
+  "?limitprograms=" ++
+  show nPrograms ++
+  "%26limitepisodes=" ++
+  show nEpisodes ++ "%26orderBy=PrimaryBroadcastDay%26orderDescending=true"
 
+-- drApiUrl nPrograms nEpisodes query = "http://localhost:1234/dr.json?" ++ query
+drProgramCardUrl :: String -> String
+drProgramCardUrl slug =
+  "https://www.dr.dk/mu-online/api/1.4/programcard/" ++ slug ++ "?expanded=true"
+
+-- drProgramCardUrl slug = "http://localhost:1234/programcard.json?" ++ slug
 decodeDRResponse :: EitherWWWResponse -> Either Error [DREpisode]
 decodeDRResponse (Left err) = Left err
 decodeDRResponse (Right response) =
@@ -88,7 +100,7 @@ programCard slug = do
       Right uri -> Just uri
   where
     cardData = eitherGetWith opts url
-    url = "http://localhost:1234/programcard.json?" ++ slug
+    url = drProgramCardUrl slug
     opts = WWW.defaults & WWW.header "User-Agent" .~ []
     eitherCard = decodeCard <$> cardData
 
