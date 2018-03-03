@@ -53,21 +53,57 @@ decodeEpisodes s = eitherDecode s >>= root >>= eps
 drApiUrl :: Integer -> Integer -> Query -> String
 drApiUrl nPrograms nEpisodes query = "http://localhost:1234/dr.json?" ++ query
 
-decodeDR :: EitherWWWResponse -> Response
-decodeDR (Left err) = Left err
-decodeDR (Right response) =
+decodeDRResponse :: EitherWWWResponse -> Either Error [DREpisode]
+decodeDRResponse (Left err) = Left err
+decodeDRResponse (Right response) =
   case drResult of
     Left x         -> Left $ "DR error:\n" ++ x
-    Right episodes -> Right . map (toResult . attachDirectUrl) $ episodes -- TODO: attachDirectUrl should ofc be part of searchDR
+    Right episodes -> Right episodes
   where
     drResult = decodeEpisodes . responseBody' $ response
 
-attachDirectUrl :: DREpisode -> DREpisode
-attachDirectUrl ep = ep {directLink = Just "TODO:"}
+decodeCard :: EitherWWWResponse -> Either Error String
+decodeCard (Left err) = Left err
+decodeCard (Right response) =
+  case (eitherDecode . responseBody') response >>= primaryAsset >>= links >>=
+       uris of
+    Left e       -> Left $ "program card error:\n" ++ e
+    Right direct -> Right . head . tail $ direct
+  where
+    primaryAsset :: (FromJSON a) => Value -> Either String a
+    primaryAsset = parseEither $ withObject "pa" (.: "PrimaryAsset")
+    links :: (FromJSON a) => Value -> Either String a
+    links = parseEither $ withObject "pa" (.: "Links")
+    uris :: (FromJSON a) => Value -> Either String [a]
+    uris = parseEither (withArray "ls" $ \bs -> mapM uri (toList bs))
+      where
+        uri = withObject "uri" (.: "Uri")
+
+programCard :: String -> IO (Maybe String)
+programCard slug = do
+  card <- eitherCard
+  return $
+    case card of
+      Left j    -> Nothing
+      Right uri -> Just uri
+  where
+    cardData = eitherGetWith opts url
+    url = "http://localhost:1234/programcard.json?" ++ slug
+    opts = WWW.defaults & WWW.header "User-Agent" .~ []
+    eitherCard = decodeCard <$> cardData
 
 searchDR :: Query -> IO Response
-searchDR q = decodeDR . prefixError "DR:\n" <$> drData
+searchDR q = do
+  episodes <- decodeDRResponse . prefixError "DR:\n" <$> drData
+  case episodes of
+    Left e -> return (Left e)
+    Right episodes -> do
+      cards <- mapM (programCard . programcardSlug) episodes
+      let episodes' = zipWith attachUrl episodes cards
+      return . Right $ map toResult episodes'
   where
     drData = eitherGetWith opts url
     url = drApiUrl 5 5 q
     opts = WWW.defaults & WWW.header "User-Agent" .~ []
+    attachUrl ep Nothing = ep
+    attachUrl ep card    = ep {directLink = card}
