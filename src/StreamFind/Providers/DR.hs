@@ -1,10 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module DR where
+module StreamFind.Providers.DR where
 
-import           Common               (eitherGetWith, prefixError,
+import           StreamFind.Common    (eitherGetWith, prefixError,
                                        responseBody')
-import           Types                (EitherWWWResponse, Error, Query,
+import           StreamFind.Types     (EitherWWWResponse, Error, Query,
                                        Response, Result (..), ToResult,
                                        toResult)
 

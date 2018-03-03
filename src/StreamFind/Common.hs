@@ -1,4 +1,7 @@
-module Common where
+module StreamFind.Common where
+
+import           StreamFind.Types       (EitherWWWResponse, Result, WWWResponse,
+                                         provider, title, url)
 
 import           Control.Exception      (catch)
 import           Control.Exception.Base (SomeException)
@@ -10,8 +13,6 @@ import           Data.Aeson.Types       (Parser)
 import qualified Data.HashMap.Lazy      as HM
 import           Data.Monoid            ((<>))
 import           Data.Text              as T
-import           Types                  (EitherWWWResponse, Result, WWWResponse,
-                                         provider, title, url)
 
 eitherGetWith :: WWW.Options -> String -> IO EitherWWWResponse
 eitherGetWith = eitherWith WWW.getWith
@@ -33,7 +34,10 @@ prefixError tag (Left err)  = Left $ tag ++ err
 prefixError tag (Right res) = Right res
 
 fmt :: Result -> String
-fmt r = provider r ++ ": " ++ title r ++
+fmt r =
+  provider r ++
+  ": " ++
+  title r ++
   case url r of
     Nothing -> ""
-    Just u -> " @ " ++ u
+    Just u  -> " @ " ++ u

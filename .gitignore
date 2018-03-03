@@ -1,1 +1,4 @@
 .*.swp
+.stack-work/
+streamfind.cabal
+*~

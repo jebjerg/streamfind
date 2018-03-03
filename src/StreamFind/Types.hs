@@ -1,4 +1,4 @@
-module Types where
+module StreamFind.Types where
 
 import           Data.ByteString.Lazy (ByteString)
 import qualified Network.Wreq         as WWW

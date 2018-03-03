@@ -1,10 +1,9 @@
-import           Common                  (fmt)
-import           Types                   (Query, Response)
+import           StreamFind              (Query, Response, fmt)
+import           StreamFind.Providers    (searchDR)
 
 import           Control.Concurrent      (forkIO)
 import           Control.Concurrent.Chan (Chan, newChan, readChan, writeChan)
 import           Data.Either             (lefts, rights)
-import           DR                      (searchDR)
 import           GHC.Conc.Sync           (ThreadId)
 import           System.Environment      (getArgs)
 
