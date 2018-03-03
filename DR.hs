@@ -5,12 +5,12 @@ module DR where
 import           Common               (eitherGetWith, extractKey, prefixError,
                                        responseBody')
 import           Control.Lens         ((&), (.~))
-import           Data.Aeson           ((.:), FromJSON, eitherDecode, parseJSON,
-                                       withObject, withArray, Value)
-import           Data.Aeson.Types     (parseEither)
-import           Data.Vector          (toList)
+import           Data.Aeson           (FromJSON, Value, eitherDecode, parseJSON,
+                                       withArray, withObject, (.:))
+import           Data.Aeson.Types     (Parser, parseEither)
 import           Data.ByteString.Lazy (ByteString)
 import           Data.List            (map)
+import           Data.Vector          (toList)
 import qualified Network.Wreq         as WWW
 import           Types                (EitherWWWResponse, Error, Query,
                                        Response, Result (..), ToResult,
@@ -25,7 +25,13 @@ data DREpisode = DREpisode
 
 instance ToResult DREpisode where
   toResult ep =
-    Result (programcardTitle ep) Nothing (directLink ep) Nothing (hasPublicPrimaryAsset ep) "DR"
+    Result
+      (programcardTitle ep)
+      Nothing
+      (directLink ep)
+      Nothing
+      (hasPublicPrimaryAsset ep)
+      "DR"
 
 instance FromJSON DREpisode where
   parseJSON =
@@ -35,12 +41,11 @@ instance FromJSON DREpisode where
       public <- o .: "HasPublicPrimaryAsset"
       return $ DREpisode title slug public Nothing
 
-decodeEpisodes :: ByteString -> Either String [DREpisode]
+decodeEpisodes :: ByteString -> Either Error [DREpisode]
 decodeEpisodes s = eitherDecode s >>= root >>= eps
   where
     root :: (FromJSON a) => Value -> Either String a
     root = parseEither $ withObject "root" (.: "Episodes")
-
     eps :: (FromJSON a) => Value -> Either String [a]
     eps = parseEither $ withArray "eps" $ mapM parseJSON . toList
 
