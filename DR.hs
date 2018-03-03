@@ -2,7 +2,7 @@
 
 module DR where
 
-import           Common               (eitherGetWith, extractKey, prefixError,
+import           Common               (eitherGetWith, prefixError,
                                        responseBody')
 import           Control.Lens         ((&), (.~))
 import           Data.Aeson           (FromJSON, Value, eitherDecode, parseJSON,

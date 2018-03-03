@@ -32,13 +32,6 @@ prefixError :: String -> Either String a -> Either String a
 prefixError tag (Left err)  = Left $ tag ++ err
 prefixError tag (Right res) = Right res
 
-extractKey :: FromJSON a => String -> Object -> Parser a
-extractKey k o =
-  maybe
-    (fail $ "key " <> show k <> " failed")
-    parseJSON
-    (HM.lookup (T.pack k) o)
-
 fmt :: Result -> String
 fmt r = provider r ++ ": " ++ title r ++
   case url r of
