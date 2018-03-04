@@ -10,9 +10,11 @@ import qualified Network.Wreq           as WWW
 
 import           Data.Aeson             (FromJSON, Object, parseJSON)
 import           Data.Aeson.Types       (Parser)
+import           Data.ByteString.Char8  (pack, unpack)
 import qualified Data.HashMap.Lazy      as HM
 import           Data.Monoid            ((<>))
-import           Data.Text              as T
+import qualified Data.Text              as T
+import           Network.HTTP.Types.URI (urlEncode)
 
 eitherGetWith :: WWW.Options -> String -> IO EitherWWWResponse
 eitherGetWith = eitherWith WWW.getWith
@@ -33,6 +35,9 @@ responseBody' x = x ^. WWW.responseBody
 prefixError :: String -> Either String a -> Either String a
 prefixError tag (Left err)  = Left $ tag ++ err
 prefixError tag (Right res) = Right res
+
+urlEncode' :: String -> String
+urlEncode' s = unpack $ urlEncode False $ pack s
 
 fmt :: Result -> String
 fmt r =
