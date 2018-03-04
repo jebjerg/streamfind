@@ -28,6 +28,8 @@ See [`DR.hs`](src/StreamFind/DR.hs) as an example.
 
 ## Usage
 
+See [`XMonad.hs`](examples/XMonad.hs) as an example integration.
+
 Snippit from [`Main.hs`](app/Main.hs):
 
 ```haskell

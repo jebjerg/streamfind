@@ -27,6 +27,7 @@ eitherWith fn opts url = catch (Right <$> fn opts url) handler
     handler :: SomeException -> IO EitherWWWResponse
     handler e = return $ Left $ show e
 
+responseBody' :: WWW.Response a -> a
 responseBody' x = x ^. WWW.responseBody
 
 prefixError :: String -> Either String a -> Either String a
