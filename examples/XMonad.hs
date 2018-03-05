@@ -21,7 +21,7 @@ searchPrompt config =
 
 defSearchPrompt = searchPrompt def
 
-streamApp = "notify+send" -- clight stream, vlc, notify-send, ...
+streamApp = "notify-send" -- clight stream, vlc, notify-send, ...
 
 -- perform search, and display gridselect with [(title, url)], spawning streamApp url
 searchMenu :: String -> X ()
