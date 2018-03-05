@@ -53,7 +53,7 @@ decodeEpisodes s = eitherDecode s >>= root >>= eps
 drApiUrl :: Integer -> Integer -> Query -> String
 drApiUrl nPrograms nEpisodes query =
   "https://www.dr.dk/mu-online/api/1.3/list/view/quicksearch/" ++
-  (urlEncode' query) ++
+  urlEncode' query ++
   "?limitprograms=" ++
   show nPrograms ++
   "%26limitepisodes=" ++
@@ -63,7 +63,7 @@ drApiUrl nPrograms nEpisodes query =
 drProgramCardUrl :: String -> String
 drProgramCardUrl slug =
   "https://www.dr.dk/mu-online/api/1.4/programcard/" ++
-  (urlEncode' slug) ++ "?expanded=true"
+  urlEncode' slug ++ "?expanded=true"
 
 -- drProgramCardUrl slug = "http://localhost:1234/programcard.json?" ++ slug
 decodeDRResponse :: EitherWWWResponse -> Either Error [DREpisode]

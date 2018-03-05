@@ -1,20 +1,21 @@
 module StreamFind.Common where
 
-import           StreamFind.Types       (EitherWWWResponse, Result, WWWResponse,
-                                         provider, title, url)
+import           StreamFind.Types           (EitherWWWResponse, Error, Result,
+                                             WWWResponse, provider, title, url)
 
-import           Control.Exception      (catch)
-import           Control.Exception.Base (SomeException)
-import           Control.Lens           ((&), (^.))
-import qualified Network.Wreq           as WWW
+import           Control.Exception          (catch)
+import           Control.Exception.Base     (SomeException)
+import           Control.Lens               ((&), (^.))
+import qualified Network.Wreq               as WWW
 
-import           Data.Aeson             (FromJSON, Object, parseJSON)
-import           Data.Aeson.Types       (Parser)
-import           Data.ByteString.Char8  (pack, unpack)
-import qualified Data.HashMap.Lazy      as HM
-import           Data.Monoid            ((<>))
-import qualified Data.Text              as T
-import           Network.HTTP.Types.URI (urlEncode)
+import           Data.Aeson                 (FromJSON, Object, parseJSON)
+import           Data.Aeson.Types           (Parser)
+import           Data.ByteString.Char8      (pack, unpack)
+import qualified Data.ByteString.Lazy.Char8 as LBSC
+import qualified Data.HashMap.Lazy          as HM
+import           Data.Monoid                ((<>))
+import qualified Data.Text                  as T
+import           Network.HTTP.Types.URI     (urlEncode)
 
 eitherGetWith :: WWW.Options -> String -> IO EitherWWWResponse
 eitherGetWith = eitherWith WWW.getWith
@@ -31,6 +32,10 @@ eitherWith fn opts url = catch (Right <$> fn opts url) handler
 
 responseBody' :: WWW.Response a -> a
 responseBody' x = x ^. WWW.responseBody
+
+unpackResponse :: EitherWWWResponse -> Either Error String
+unpackResponse (Left err) = Left err
+unpackResponse (Right response) = Right $ LBSC.unpack . responseBody' $ response
 
 prefixError :: String -> Either String a -> Either String a
 prefixError tag (Left err)  = Left $ tag ++ err
