@@ -1,5 +1,7 @@
 import           StreamFind              (Query, Response, fmt)
-import           StreamFind.Providers    (searchDR, searchHBO)
+import           StreamFind.Providers    (searchBlockbuster, searchCMore,
+                                          searchDR, searchHBO, searchTV2,
+                                          searchViaplay)
 
 import           Control.Concurrent      (forkIO)
 import           Control.Concurrent.Chan (Chan, newChan, readChan, writeChan)
@@ -21,7 +23,14 @@ search query backends = do
 
 main = do
   q <- unwords <$> getArgs
-  let backends = [searchDR, searchHBO]
+  let backends =
+        [ searchBlockbuster
+        , searchCMore
+        , searchDR
+        , searchHBO
+        , searchTV2
+        , searchViaplay
+        ]
   responses <- search q backends
   let errs = lefts responses
   let results = concat $ rights responses
