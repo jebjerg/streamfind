@@ -1,7 +1,8 @@
 module StreamFind.Common where
 
 import           StreamFind.Types           (EitherWWWResponse, Error, Result,
-                                             WWWResponse, provider, title, url)
+                                             WWWResponse, price, provider,
+                                             title, url)
 
 import           Control.Exception          (catch)
 import           Control.Exception.Base     (SomeException)
@@ -49,6 +50,9 @@ fmt r =
   provider r ++
   ": " ++
   title r ++
-  case url r of
-    Nothing -> ""
-    Just u  -> " @ " ++ u
+  (case price r of
+     Nothing -> ""
+     Just p  -> " $$$ " ++ show p) ++
+  (case url r of
+     Nothing -> ""
+     Just u  -> " @ " ++ u)
