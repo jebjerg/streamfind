@@ -38,7 +38,10 @@ resolveProviders ["*"] = map snd providers
 resolveProviders ps    = mapMaybe resolve ps
 
 resolve :: String -> Maybe SearchFunction
-resolve askName = HM.lookup askName (HM.fromList (map lowerCase providers))
+resolve askName =
+  HM.lookup (lower askName) (HM.fromList (map lowerCase providers))
   where
     lowerCase :: (String, SearchFunction) -> (String, SearchFunction)
-    lowerCase (name, fn) = (map toLower name, fn)
+    lowerCase (name, fn) = (lower name, fn)
+    lower :: String -> String
+    lower = map toLower
