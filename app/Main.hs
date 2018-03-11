@@ -1,6 +1,6 @@
 import           Cli                     (Arguments, argProviders, argQuery,
                                           parseArgs)
-import           StreamFind              (Query, Response, fmt)
+import           StreamFind              (Query, Response, SearchFunction, fmt)
 import           StreamFind.Providers    (resolveProviders)
 
 import           Control.Concurrent      (forkIO)
@@ -9,11 +9,10 @@ import           Data.Either             (lefts, rights)
 import           GHC.Conc.Sync           (ThreadId)
 import           System.Environment      (getArgs)
 
-forkSearch ::
-     Chan (IO Response) -> Query -> (Query -> IO Response) -> IO ThreadId
+forkSearch :: Chan (IO Response) -> Query -> SearchFunction -> IO ThreadId
 forkSearch channel query backend = forkIO . writeChan channel $ backend query
 
-search :: Query -> [Query -> IO Response] -> IO [Response]
+search :: Query -> [SearchFunction] -> IO [Response]
 search query backends = do
   wire <- newChan
   let searcher = mapM $ forkSearch wire query
