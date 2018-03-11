@@ -19,9 +19,9 @@ dependencies:
 - unordered-containers
 - aeson
 - http-types
-- feed
+- feed >= 1.0
 - sqlite-simple
-- cryptonite
+- cryptonite >= 0.22
 - memory
 - time
 - http-client
