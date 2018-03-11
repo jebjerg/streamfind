@@ -1,5 +1,5 @@
 name:                streamfind
-version:             0.1.5.0
+version:             0.1.6.0
 
 extra-source-files:
 - README.md
@@ -26,6 +26,8 @@ dependencies:
 - time
 - http-client
 - regex-posix
+- optparse-applicative
+- split
 
 library:
   source-dirs: src

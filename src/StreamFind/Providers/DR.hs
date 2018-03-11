@@ -17,6 +17,8 @@ import           Data.List            (map)
 import           Data.Vector          (toList)
 import qualified Network.Wreq         as WWW
 
+providerName = "DR"
+
 data DREpisode = DREpisode
   { programcardTitle      :: String
   , programcardSlug       :: String
@@ -32,7 +34,7 @@ instance ToResult DREpisode where
       (directLink ep)
       Nothing
       (hasPublicPrimaryAsset ep)
-      "DR"
+      providerName
 
 instance FromJSON DREpisode where
   parseJSON =
@@ -70,7 +72,7 @@ decodeDRResponse :: EitherWWWResponse -> Either Error [DREpisode]
 decodeDRResponse (Left err) = Left err
 decodeDRResponse (Right response) =
   case drResult of
-    Left x         -> Left $ "DR error:\n" ++ x
+    Left x         -> Left $ providerName ++ " error:\n" ++ x
     Right episodes -> Right episodes
   where
     drResult = decodeEpisodes . responseBody' $ response
@@ -107,7 +109,7 @@ programCard slug = do
 
 searchDR :: Query -> IO Response
 searchDR q = do
-  episodes <- decodeDRResponse . prefixError "DR:\n" <$> drData
+  episodes <- decodeDRResponse . prefixError (providerName ++ ":\n") <$> drData
   case episodes of
     Left e -> return (Left e)
     Right episodes -> do

@@ -25,3 +25,5 @@ type Response = Either Error [Result]
 type WWWResponse = WWW.Response ByteString
 
 type EitherWWWResponse = Either Error WWWResponse
+
+type SearchFunction = Query -> IO Response

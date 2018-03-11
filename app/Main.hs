@@ -1,7 +1,7 @@
+import           Cli                     (Arguments, argProviders, argQuery,
+                                          parseArgs)
 import           StreamFind              (Query, Response, fmt)
-import           StreamFind.Providers    (searchBlockbuster, searchCMore,
-                                          searchDR, searchHBO, searchNetflix,
-                                          searchTV2, searchViaplay)
+import           StreamFind.Providers    (resolveProviders)
 
 import           Control.Concurrent      (forkIO)
 import           Control.Concurrent.Chan (Chan, newChan, readChan, writeChan)
@@ -21,20 +21,16 @@ search query backends = do
   where
     consume channel = mapM $ \_ -> readChan channel
 
-main = do
-  q <- unwords <$> getArgs
-  let backends =
-        [ searchBlockbuster
-        , searchCMore
-        , searchDR
-        , searchHBO
-        , searchNetflix
-        , searchTV2
-        , searchViaplay
-        ]
-  responses <- search q backends
+searchAction :: Arguments -> IO ()
+searchAction args = do
+  let query = argQuery args
+  let backends = resolveProviders (argProviders args)
+  responses <- search query backends
   let errs = lefts responses
   let results = concat $ rights responses
   -- do something with reslts, and errors
   mapM_ (putStrLn . fmt) results
   mapM_ putStrLn errs
+
+main :: IO ()
+main = parseArgs >>= searchAction

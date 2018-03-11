@@ -15,6 +15,8 @@ import           Text.Feed.Types   (Item (RSSItem))
 import           Text.RSS.Syntax   (RSSItem, rssItemDescription, rssItemLink,
                                     rssItemTitle)
 
+providerName = "HBO"
+
 result :: Item -> Either Error Result
 result (RSSItem i) =
   case title of
@@ -27,7 +29,7 @@ result (RSSItem i) =
         (TXT.unpack <$> rssItemLink i)
         Nothing
         True
-        "HBO"
+        providerName
   where
     title = rssItemTitle i
 
@@ -35,11 +37,11 @@ searchHBO :: Query -> IO Response
 searchHBO q = do
   hboData <- hboResp
   case hboData of
-    Left e -> return . Left $ "HBO:\n" ++ e
+    Left e -> return . Left $ providerName ++ ":\n" ++ e
     Right resp ->
       return $
       case parseFeedString resp of
-        Nothing -> Left "Unable to parse HBO"
+        Nothing -> Left "Unable to parse"
         Just f -> Right positive -- TODO: handle failed results mapping
           where positive = rights $ map result $ feedItems f
   where
