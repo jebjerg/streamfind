@@ -1,7 +1,7 @@
 import           StreamFind              (Query, Response, fmt)
 import           StreamFind.Providers    (searchBlockbuster, searchCMore,
-                                          searchDR, searchHBO, searchTV2,
-                                          searchViaplay)
+                                          searchDR, searchHBO, searchNetflix,
+                                          searchTV2, searchViaplay)
 
 import           Control.Concurrent      (forkIO)
 import           Control.Concurrent.Chan (Chan, newChan, readChan, writeChan)
@@ -28,6 +28,7 @@ main = do
         , searchCMore
         , searchDR
         , searchHBO
+        , searchNetflix
         , searchTV2
         , searchViaplay
         ]

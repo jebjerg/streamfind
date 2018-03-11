@@ -8,6 +8,7 @@ import           Control.Exception          (catch)
 import           Control.Exception.Base     (SomeException)
 import           Control.Lens               ((&), (^.))
 import qualified Network.Wreq               as WWW
+import           Network.Wreq.Types         (Postable)
 
 import           Data.Aeson                 (FromJSON, Object, parseJSON)
 import           Data.Aeson.Types           (Parser)
@@ -18,18 +19,16 @@ import           Data.Monoid                ((<>))
 import qualified Data.Text                  as T
 import           Network.HTTP.Types.URI     (urlEncode)
 
-eitherGetWith :: WWW.Options -> String -> IO EitherWWWResponse
-eitherGetWith = eitherWith WWW.getWith
+exceptionHandler :: SomeException -> IO EitherWWWResponse
+exceptionHandler e = return $ Left $ show e
 
-eitherWith ::
-     (WWW.Options -> String -> IO WWWResponse)
-  -> WWW.Options
-  -> String
-  -> IO EitherWWWResponse
-eitherWith fn opts url = catch (Right <$> fn opts url) handler
-  where
-    handler :: SomeException -> IO EitherWWWResponse
-    handler e = return $ Left $ show e
+eitherGetWith :: WWW.Options -> String -> IO EitherWWWResponse
+eitherGetWith opts url = catch (Right <$> WWW.getWith opts url) exceptionHandler
+
+eitherPostWith ::
+     Postable a => WWW.Options -> String -> a -> IO EitherWWWResponse
+eitherPostWith opts url p =
+  catch (Right <$> WWW.postWith opts url p) exceptionHandler
 
 responseBody' :: WWW.Response a -> a
 responseBody' x = x ^. WWW.responseBody

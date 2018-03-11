@@ -1,5 +1,5 @@
 name:                streamfind
-version:             0.1.4.0
+version:             0.1.5.0
 
 extra-source-files:
 - README.md
@@ -20,6 +20,12 @@ dependencies:
 - aeson
 - http-types
 - feed
+- sqlite-simple
+- cryptonite
+- memory
+- time
+- http-client
+- regex-posix
 
 library:
   source-dirs: src
