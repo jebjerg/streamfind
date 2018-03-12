@@ -51,13 +51,27 @@ convCookie c = do
     , HTTP.cookie_http_only = False
     }
 
+netflixCookies :: [Cookie] -> [Cookie]
+netflixCookies = filter (\x -> cookieName x `elem` whitelist)
+  where
+    whitelist =
+      [ "VisitorId"
+      , "pas"
+      , "memclid"
+      , "nfvdid"
+      , "SecureNetflixId"
+      , "NetflixId"
+      , "clSharedContext"
+      , "profilesNewSession"
+      ]
+
 firefoxCookies :: String -> String -> IO [Cookie]
 firefoxCookies path host = do
   conn <- open path
   cookies <-
     query conn "SELECT name, value FROM moz_cookies WHERE host = ?" (Only host)
   close conn
-  return cookies
+  return $ netflixCookies cookies
 
 data ChromeCookie = ChromeCookie
   { name           :: String
@@ -94,7 +108,7 @@ chromeCookies path host = do
         , "clSharedContext"
         , "profilesNewSession"
         ]
-  return . filter (\x -> cookieName x `elem` whitelist) $
+  return . netflixCookies $
     map (\r -> Cookie (name r) (decryptChrome (encryptedValue r))) rows
   where
     decryptChrome =
