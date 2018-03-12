@@ -26,9 +26,10 @@ searchAction args = do
   let backends = resolveProviders (argProviders args)
   responses <- search query backends
   let errs = lefts responses
-  let results = concat $ rights responses
   -- do something with reslts, and errors
-  mapM_ (putStrLn . fmt) results
+  case concat . rights $ responses of
+    []      -> putStrLn "No hits"
+    results -> mapM_ (putStrLn . fmt) results
   mapM_ putStrLn errs
 
 main :: IO ()
