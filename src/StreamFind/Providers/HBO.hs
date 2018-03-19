@@ -2,7 +2,7 @@
 
 module StreamFind.Providers.HBO where
 
-import           StreamFind.Common (eitherGetWith, unpackResponse)
+import           StreamFind.Common (eitherGetWith, prefixError, unpackResponse)
 import           StreamFind.Types  (Error, Query, Response, Result (..))
 
 import           Control.Lens      ((&), (.~))
@@ -11,7 +11,7 @@ import qualified Data.Text         as TXT
 import qualified Network.Wreq      as WWW
 import           Text.Feed.Import  (parseFeedString)
 import           Text.Feed.Query   (feedItems)
-import           Text.Feed.Types   (Item (RSSItem))
+import           Text.Feed.Types   (Feed, Item (RSSItem))
 import           Text.RSS.Syntax   (RSSItem, rssItemDescription, rssItemLink,
                                     rssItemTitle)
 
@@ -33,17 +33,19 @@ result (RSSItem i) =
   where
     title = rssItemTitle i
 
+positives :: Monad m => Feed -> m [Result]
+positives rs = return . rights $ map result (feedItems rs)
+
+maybeToEither :: a -> Maybe b -> Either a b
+maybeToEither = flip maybe Right . Left
+
+eitherParseFeedString s = maybeToEither "Unable to parse" (parseFeedString s)
+
 searchHBO :: Query -> IO Response
 searchHBO q = do
   hboData <- hboResp
-  case hboData of
-    Left e -> return . Left $ providerName ++ ":\n" ++ e
-    Right resp ->
-      return $
-      case parseFeedString resp of
-        Nothing -> Left "Unable to parse"
-        Just f -> Right positive -- TODO: handle failed results mapping
-          where positive = rights $ map result $ feedItems f
+  return . prefixError (providerName ++ ":\n") $
+    hboData >>= eitherParseFeedString >>= positives
   where
     hbo = eitherGetWith opts url
     url =
