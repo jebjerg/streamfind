@@ -2,20 +2,24 @@
 
 module StreamFind.Providers.DR where
 
-import           StreamFind.Common    (eitherGetWith, prefixError,
-                                       responseBody', urlEncode')
-import           StreamFind.Types     (EitherWWWResponse, Error, Query,
-                                       Response, Result (..), ToResult,
-                                       toResult)
+import           StreamFind.Common          (eitherGetWith, prefixError,
+                                             responseBody', urlEncode')
+import           StreamFind.Types           (Error, Query, Response,
+                                             Result (..), ToResult, toResult)
 
-import           Control.Lens         ((&), (.~))
-import           Data.Aeson           (FromJSON, Value, eitherDecode, parseJSON,
-                                       withArray, withObject, (.:))
-import           Data.Aeson.Types     (Parser, parseEither)
-import           Data.ByteString.Lazy (ByteString)
-import           Data.List            (map)
-import           Data.Vector          (toList)
-import qualified Network.Wreq         as WWW
+import           Control.Error.Util         (hush, hushT, note, noteT)
+import           Control.Lens               ((&), (.~))
+import           Control.Monad.IO.Class     (liftIO)
+import           Control.Monad.Trans.Except (ExceptT (..), runExceptT)
+import           Control.Monad.Trans.Maybe  (runMaybeT)
+import           Data.Aeson                 (FromJSON, Value, eitherDecode,
+                                             parseJSON, withArray, withObject,
+                                             (.:))
+import           Data.Aeson.Types           (Parser, parseEither)
+import           Data.ByteString.Lazy       (ByteString)
+import           Data.List                  (map)
+import           Data.Vector                (toList)
+import qualified Network.Wreq               as WWW
 
 providerName = "DR"
 
@@ -68,22 +72,9 @@ drProgramCardUrl slug =
   urlEncode' slug ++ "?expanded=true"
 
 -- drProgramCardUrl slug = "http://localhost:1234/programcard.json?" ++ slug
-decodeDRResponse :: EitherWWWResponse -> Either Error [DREpisode]
-decodeDRResponse (Left err) = Left err
-decodeDRResponse (Right response) =
-  case drResult of
-    Left x         -> Left $ providerName ++ " error:\n" ++ x
-    Right episodes -> Right episodes
-  where
-    drResult = decodeEpisodes . responseBody' $ response
-
-decodeCard :: EitherWWWResponse -> Either Error String
-decodeCard (Left err) = Left err
-decodeCard (Right response) =
-  case (eitherDecode . responseBody') response >>= primaryAsset >>= links >>=
-       uris of
-    Left e       -> Left $ "program card error:\n" ++ e
-    Right direct -> Right . head . tail $ direct
+decodeCard :: ByteString -> Either Error String
+decodeCard response =
+  head . tail <$> (eitherDecode response >>= primaryAsset >>= links >>= uris)
   where
     primaryAsset :: (FromJSON a) => Value -> Either String a
     primaryAsset = parseEither $ withObject "pa" (.: "PrimaryAsset")
@@ -91,34 +82,26 @@ decodeCard (Right response) =
     links = parseEither $ withObject "pa" (.: "Links")
     uris :: (FromJSON a) => Value -> Either String [a]
     uris = parseEither (withArray "ls" $ \bs -> mapM uri (toList bs))
-      where
-        uri = withObject "uri" (.: "Uri")
+    uri :: (FromJSON a) => Value -> Parser a
+    uri = withObject "uri" (.: "Uri")
 
 programCard :: String -> IO (Maybe String)
-programCard slug = do
-  card <- eitherCard
-  return $
-    case card of
-      Left j    -> Nothing
-      Right uri -> Just uri
+programCard slug = runMaybeT $ hushT (response >>= decoded)
   where
-    cardData = eitherGetWith opts url
     url = drProgramCardUrl slug
     opts = WWW.defaults & WWW.header "User-Agent" .~ []
-    eitherCard = decodeCard <$> cardData
+    response = responseBody' <$> ExceptT (eitherGetWith opts url)
+    decoded = ExceptT . return . decodeCard
 
 searchDR :: Query -> IO Response
-searchDR q = do
-  episodes <- decodeDRResponse . prefixError (providerName ++ ":\n") <$> drData
-  case episodes of
-    Left e -> return (Left e)
-    Right episodes -> do
-      cards <- mapM (programCard . programcardSlug) episodes
-      let episodes' = zipWith attachUrl episodes cards
-      return . Right $ map toResult episodes'
+searchDR q =
+  prefixError (providerName ++ ":\n") <$>
+  runExceptT (map toResult <$> (response >>= decoded >>= mapM attachUrl))
   where
-    drData = eitherGetWith opts url
     url = drApiUrl 5 5 q
     opts = WWW.defaults & WWW.header "User-Agent" .~ []
-    attachUrl ep Nothing = ep
-    attachUrl ep card    = ep {directLink = card}
+    response = responseBody' <$> ExceptT (eitherGetWith opts url)
+    decoded = ExceptT . return . decodeEpisodes
+    attachUrl :: DREpisode -> ExceptT Error IO DREpisode
+    attachUrl ep = setUrl ep <$> (liftIO . programCard . programcardSlug) ep
+    setUrl ep link = ep {directLink = link}

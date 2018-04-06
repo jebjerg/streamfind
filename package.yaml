@@ -2,7 +2,8 @@ name:                streamfind
 version:             0.1.11.0
 
 extra-source-files:
-- README.md
+  - examples/XMonad.hs
+  - README.md
 
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
@@ -28,6 +29,8 @@ dependencies:
 - regex-posix
 - optparse-applicative
 - split
+- errors
+- transformers
 
 library:
   source-dirs: src
