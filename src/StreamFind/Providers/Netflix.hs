@@ -3,7 +3,8 @@
 module StreamFind.Providers.Netflix where
 
 import           StreamFind.Common                    (eitherPostWith,
-                                                       unpackResponse)
+                                                       prefixError,
+                                                       responseBody')
 import           StreamFind.Providers.Netflix.Cookies (Cookie, chromeCookies,
                                                        cookieJar)
 import           StreamFind.Providers.Netflix.Token   (apiToken)
@@ -14,11 +15,12 @@ import           StreamFind.Types                     (Error, Query, Response,
 import           Control.Applicative                  ((<|>))
 import           Control.Lens                         ((&), (.~))
 import           Control.Monad                        ((>=>))
+import           Control.Monad.Trans.Except           (ExceptT (..), runExceptT)
 import           Data.Aeson                           (Value, eitherDecode,
                                                        withObject, (.:))
 import           Data.Aeson.Types                     (Parser, parseEither)
-import           Data.ByteString.Char8                as BSC
-import qualified Data.ByteString.Lazy.Char8           as LBSC
+import qualified Data.ByteString.Char8                as BSC
+import           Data.ByteString.Lazy                 (ByteString)
 import           Data.HashMap.Strict                  (toList)
 import           Data.Maybe                           (catMaybes)
 import qualified Data.Text                            as T
@@ -39,36 +41,33 @@ instance ToResult Netflix where
   toResult n =
     Result (nfTitle n) Nothing (Just (nfLink n)) Nothing True providerName
 
-decodeNetflixSearch :: Either Error String -> Either Error [Netflix]
-decodeNetflixSearch nfResp =
-  case nfResp of
-    Left e -> Left $ providerName ++ ":\n" ++ e
-    Right resp ->
-      eitherDecode (LBSC.pack resp) >>= parseEither netflix >>=
-      Right . catMaybes
-      where netflix :: Value -> Parser [Maybe Netflix]
-            netflix =
-              withObject "root" (.: "value") >=>
-              withObject "value" (.: "videos") >=> videos
-            videos :: Value -> Parser [Maybe Netflix]
-            videos =
-              withObject "videos" $ \o ->
-                for (toList o) $ \(videoId, videoObj) -> do
-                  let videoId' = T.unpack videoId
-                  Just <$> video videoId' videoObj <|> return Nothing -- TODO: :(
-            video :: String -> Value -> Parser Netflix
-            video vId =
-              withObject "hit" $ \v -> do
-                nTitle <- v .: "title"
-                nType <- v .: "summary" >>= (.: "type")
-                nOriginal <- v .: "summary" >>= (.: "isOriginal")
-                return
-                  Netflix
-                  { nfTitle = nTitle
-                  , nfTyp = nType
-                  , nfOriginal = nOriginal
-                  , nfLink = "https://netflix.com/title/" ++ vId
-                  }
+decodeNetflixSearch :: ByteString -> Either Error [Netflix]
+decodeNetflixSearch resp =
+  catMaybes <$> (eitherDecode resp >>= parseEither netflix)
+  where
+    netflix :: Value -> Parser [Maybe Netflix]
+    netflix =
+      withObject "root" (.: "value") >=>
+      withObject "value" (.: "videos") >=> videos
+    videos :: Value -> Parser [Maybe Netflix]
+    videos =
+      withObject "videos" $ \o ->
+        for (toList o) $ \(videoId, videoObj) -> do
+          let videoId' = T.unpack videoId
+          Just <$> video videoId' videoObj <|> return Nothing -- TODO: :(
+    video :: String -> Value -> Parser Netflix
+    video vId =
+      withObject "hit" $ \v -> do
+        nTitle <- v .: "title"
+        nType <- v .: "summary" >>= (.: "type")
+        nOriginal <- v .: "summary" >>= (.: "isOriginal")
+        return
+          Netflix
+          { nfTitle = nTitle
+          , nfTyp = nType
+          , nfOriginal = nOriginal
+          , nfLink = "https://netflix.com/title/" ++ vId
+          }
 
 -- TODO: type -> json
 searchData q n =
@@ -89,29 +88,22 @@ netflixUrl token =
 
 searchNetflix' :: IO [Cookie] -> Int -> Query -> IO Response
 searchNetflix' cookies n q = do
-  cookieJar' <- cookies'
-  shaktiToken <- apiToken cookieJar'
-  case shaktiToken of
-    Left err -> return . Left $ err
-    Right token ->
-      (resultify . decodeNetflixSearch) . unpackResponse <$> response
-      where response =
-              eitherPostWith
-                (opts cookieJar')
-                (netflixUrl token)
-                (searchData q n)
-            opts cookieJar' =
-              WWW.defaults & WWW.header "User-Agent" .~ [] &
-              WWW.header "Content-Type" .~
-              ["application/json"] &
-              WWW.cookies .~
-              Just cookieJar'
-            resultify searchResults =
-              case searchResults of
-                Left err        -> Left err
-                Right nfResults -> Right $ Prelude.map toResult nfResults
+  cookieJar' <- cookies >>= cookieJar
+  prefixError (providerName ++ ":\n") <$>
+    runExceptT
+      (ExceptT (apiToken cookieJar') >>= response cookieJar' >>= decodeResults)
   where
-    cookies' = cookieJar =<< cookies
+    response jar token = responseBody' <$> postSearch jar token q n
+    postSearch jar token q n =
+      ExceptT (eitherPostWith (opts jar) (netflixUrl token) (searchData q n))
+    decodeResults :: ByteString -> ExceptT Error IO [Result]
+    decodeResults resp =
+      ExceptT . return $ Prelude.map toResult <$> decodeNetflixSearch resp
+    opts cookieJar' =
+      WWW.defaults & WWW.header "User-Agent" .~ [] & WWW.header "Content-Type" .~
+      ["application/json"] &
+      WWW.cookies .~
+      Just cookieJar'
 
 searchNetflix :: Query -> IO Response
 searchNetflix q = do

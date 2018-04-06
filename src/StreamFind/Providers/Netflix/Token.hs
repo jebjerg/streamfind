@@ -5,7 +5,8 @@ module StreamFind.Providers.Netflix.Token where
 import           Control.Lens        ((&), (.~))
 import           Network.HTTP.Client (CookieJar)
 import qualified Network.Wreq        as WWW
-import           StreamFind.Common   (eitherGetWith, unpackResponse)
+import           StreamFind.Common   (eitherGetWith, prefixError,
+                                      unpackResponse)
 import           StreamFind.Types    (Error)
 import           Text.Regex.Posix    ((=~))
 
@@ -14,11 +15,9 @@ tokenPattern = "\"BUILD_IDENTIFIER\":\"([a-f0-9]+)\""
 
 apiToken :: CookieJar -> IO (Either Error String)
 apiToken cookieJar' = do
-  response <- tokenResp -- TODO: eww :(
-  return $
-    case response of
-      Left err  -> Left $ "Unable to fetch /browse:\n" ++ err
-      Right res -> tokenize . Prelude.concat . tokenMatch $ res
+  response <- tokenResp
+  return . prefixError "Unable to fetch /browse:\n" $
+    response >>= tokenize . Prelude.concat . tokenMatch
   where
     url = "https://www.netflix.com/browse"
     -- url = "http://localhost:1234/browse.html"
