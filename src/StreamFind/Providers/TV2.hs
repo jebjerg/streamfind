@@ -4,7 +4,7 @@ module StreamFind.Providers.TV2 where
 
 import           StreamFind.Common    (eitherGetWith, prefixError,
                                        responseBody', urlEncode')
-import           StreamFind.Types     (Error, Query, Response, Result (..))
+import           StreamFind.Types     (Query, Response, Result (..))
 
 import           Control.Lens         ((&), (.~))
 import           Data.Aeson           (Value, eitherDecode, withArray,
@@ -16,10 +16,10 @@ import qualified Network.Wreq         as WWW
 
 providerName = "TV2"
 
-decodeTV2 :: ByteString -> Either Error [Result]
+decodeTV2 :: ByteString -> Response
 decodeTV2 resp = eitherDecode resp >>= hits
   where
-    hits :: Value -> Either Error [Result]
+    hits :: Value -> Response
     hits = parseEither $ withArray "suggestions" $ \s -> mapM hit (toList s)
     hit :: Value -> Parser Result
     hit =
@@ -39,7 +39,7 @@ searchTV2 :: Query -> IO Response
 searchTV2 q = do
   tv2Data <- response
   return . prefixError (providerName ++ ":\n") $
-    (responseBody' <$> tv2Data) >>= decodeTV2
+    responseBody' <$> tv2Data >>= decodeTV2
   where
     response = eitherGetWith opts url
     url =

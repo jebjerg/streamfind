@@ -33,8 +33,8 @@ result (RSSItem i) =
   where
     title = rssItemTitle i
 
-positives :: Monad m => Feed -> m [Result]
-positives rs = return . rights $ map result (feedItems rs)
+positives :: Feed -> Either Error [Result]
+positives rs = sequence $ map result (feedItems rs)
 
 maybeToEither :: a -> Maybe b -> Either a b
 maybeToEither = flip maybe Right . Left
