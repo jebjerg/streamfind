@@ -34,7 +34,7 @@ result (RSSItem i) =
     title = rssItemTitle i
 
 positives :: Feed -> Either Error [Result]
-positives rs = sequence $ map result (feedItems rs)
+positives rs = mapM result (feedItems rs)
 
 maybeToEither :: a -> Maybe b -> Either a b
 maybeToEither = flip maybe Right . Left
