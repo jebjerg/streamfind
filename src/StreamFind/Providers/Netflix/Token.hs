@@ -8,16 +8,16 @@ import qualified Network.Wreq        as WWW
 import           StreamFind.Common   (eitherGetWith, prefixError,
                                       unpackResponse)
 import           StreamFind.Types    (Error)
-import           Text.Regex.Posix    ((=~))
+import           Text.Regex          (Regex, matchRegex, mkRegex)
 
-tokenPattern :: String
-tokenPattern = "\"BUILD_IDENTIFIER\":\"([a-f0-9]+)\""
+tokenPattern :: Regex
+tokenPattern = mkRegex "\"BUILD_IDENTIFIER\":\"([a-f0-9]+)\""
 
 apiToken :: CookieJar -> IO (Either Error String)
 apiToken cookieJar' = do
   response <- tokenResp
   return . prefixError "Unable to fetch /browse:\n" $
-    response >>= tokenize . Prelude.concat . tokenMatch
+    response >>= tokenize . tokenMatch
   where
     url = "https://www.netflix.com/browse"
     -- url = "http://localhost:1234/browse.html"
@@ -26,8 +26,8 @@ apiToken cookieJar' = do
       Just cookieJar'
     tokenResp :: IO (Either Error String)
     tokenResp = unpackResponse <$> eitherGetWith opts url
-    tokenMatch :: String -> [[String]]
-    tokenMatch = flip (=~) tokenPattern
-    tokenize :: [String] -> Either Error String
-    tokenize (_:token:_) = Right token
-    tokenize _           = Left "Unable to find BUILD_IDENTIFIER"
+    tokenMatch :: String -> Maybe [String]
+    tokenMatch = matchRegex tokenPattern
+    tokenize :: Maybe [String] -> Either Error String
+    tokenize (Just (token:_)) = Right token
+    tokenize _                = Left "Unable to find BUILD_IDENTIFIER"

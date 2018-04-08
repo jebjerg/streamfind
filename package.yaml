@@ -26,11 +26,11 @@ dependencies:
 - memory
 - time
 - http-client
-- regex-posix
 - optparse-applicative
 - split
 - errors
 - transformers
+- regex-compat
 
 library:
   source-dirs: src
