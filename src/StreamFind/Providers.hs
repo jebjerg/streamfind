@@ -5,6 +5,7 @@ module StreamFind.Providers
   , DR.searchDR
   , HBO.searchHBO
   , Netflix.searchNetflix
+  , Plejmo.searchPlejmo
   , SFAnytime.searchSF
   , TV2.searchTV2
   , Viaplay.searchViaplay
@@ -15,6 +16,7 @@ import           StreamFind.Providers.CMore       as CMore
 import qualified StreamFind.Providers.DR          as DR
 import           StreamFind.Providers.HBO         as HBO
 import           StreamFind.Providers.Netflix     as Netflix
+import           StreamFind.Providers.Plejmo      as Plejmo
 import           StreamFind.Providers.SFAnytime   as SFAnytime
 import           StreamFind.Providers.TV2         as TV2
 import           StreamFind.Providers.Viaplay     as Viaplay
@@ -31,6 +33,7 @@ providers =
   , (DR.providerName, DR.searchDR)
   , (HBO.providerName, HBO.searchHBO)
   , (Netflix.providerName, Netflix.searchNetflix)
+  , (Plejmo.providerName, Plejmo.searchPlejmo)
   , (SFAnytime.providerName, SFAnytime.searchSF)
   , (TV2.providerName, TV2.searchTV2)
   , (Viaplay.providerName, Viaplay.searchViaplay)
