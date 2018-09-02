@@ -6,6 +6,7 @@ import           StreamFind.Common    (eitherGetWith, prefixError,
                                        responseBody', urlEncode')
 import           StreamFind.Types     (Query, Response, Result (..))
 
+import           Control.Applicative  ((<|>))
 import           Control.Lens         ((&), (.~))
 import           Control.Monad        ((>=>))
 import           Data.Aeson           (Value, eitherDecode, withArray,
@@ -28,9 +29,9 @@ decodeCMore resp = eitherDecode resp >>= assets
     asset :: Value -> Parser Result
     asset =
       withObject "suggestion" $ \o -> do
-        title <- o .: "original_title" >>= (.: "text")
+        title <- (o .: "original_title" >>= (.: "text")) <|> o .: "title_da"
         desc <- o .: "description_short_da"
-        videoId <- o .: "video_id"
+        videoId <- o .: "video_id" <|> o .: "id"
         return $
           Result
             title
