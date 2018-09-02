@@ -8,9 +8,9 @@ import           StreamFind.Types      (Query, Response, Result (..))
 
 import           Control.Lens          ((&), (.~))
 import           Control.Monad         ((>=>))
-import           Data.Aeson            (Value, eitherDecode, withArray,
-                                        withObject, (.:))
-import           Data.Aeson.Types      (Parser, parseEither)
+import           Data.Aeson            (Value (..), eitherDecode, encode,
+                                        toJSON, withArray, withObject, (.:))
+import           Data.Aeson.Types      (Parser, object, parseEither, (.=))
 import qualified Data.ByteString.Char8 as BSC
 import           Data.ByteString.Lazy  (ByteString)
 import           Data.Char             (toLower)
@@ -35,7 +35,7 @@ decodeSF resp = eitherDecode resp >>= parseEither results
       withObject "hit" $ \o -> do
         title <- o .: "title"
         kind <- o .: "producttype"
-        mediaId <- o .: "mediaid"
+        mediaId <- o .: "objectID"
         price <- o .: "price_da"
         summary <- o .: "short_summary_da"
         return $
@@ -47,10 +47,9 @@ decodeSF resp = eitherDecode resp >>= parseEither results
             True
             providerName
 
-sfLink :: String -> Integer -> String -> String
+sfLink :: String -> String -> String -> String
 sfLink kind mediaId title =
-  "https://www.sfanytime.com/da/" ++
-  kind ++ "/" ++ show mediaId ++ "/" ++ slug title
+  "https://www.sfanytime.com/da/" ++ kind ++ "/" ++ mediaId ++ "/" ++ slug title
   where
     slug :: String -> String
     slug =
@@ -58,13 +57,25 @@ sfLink kind mediaId title =
       flip (subRegex (mkRegex "[ ]")) "-" . map toLower
 
 -- NOTE: lots of goodies. inspect with attributesToRetrieve=*. see https://www.algolia.com/doc/api-reference/
-searchData q n =
-  BSC.pack $
-  "{\"requests\":[{\"indexName\":\"prod_sfanytime_movies\",\"params\":\"query=" ++
-  urlEncode' q ++
-  "&numericFilters=adult%3D0%2C%20available_in_dk%3D1&hitsPerPage=" ++
-  show n ++
-  "&maxValuesPerFacet=3&page=0&attributesToRetrieve=mediaid%2Cproducttype%2Cproducttypeid%2Ctitle%2Ctitle_sv%2Ctitle_no%2Ctitle_da%2Ctitle_fi%2Ccover_id%2Ccover_no%2Ccover_sv%2Ccover_da%2Ccover_fi%2Cprice_da%2Cshort_summary_da&distinct=true&facets=%5B%5D&tagFilters=\"}]}"
+searchData query n =
+  encode . toJSON $
+  object
+    [ "requests" .=
+      [ object
+          [ "indexName" .= String "prod_sfanytime_movies"
+          , "params" .=
+            ("query=" ++
+             urlEncode' query ++
+             "&numericFilters=adult%3D0%2C%20available_in_dk%3D1&hitsPerPage=" ++
+             show n ++
+             "&maxValuesPerFacet=" ++
+             show 3 ++
+             "&page=" ++
+             show 0 ++
+             "&attributesToRetrieve=mediaid%2Cproducttype%2Cproducttypeid%2Ctitle%2Ctitle_sv%2Ctitle_no%2Ctitle_da%2Ctitle_fi%2Ccover_id%2Ccover_no%2Ccover_sv%2Ccover_da%2Ccover_fi%2Cprice_da%2Cshort_summary_da&distinct=true&facets=%5B%5D&tagFilters=")
+          ]
+      ]
+    ]
 
 searchSF :: Query -> IO Response
 searchSF q = do

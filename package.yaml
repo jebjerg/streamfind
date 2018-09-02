@@ -1,5 +1,5 @@
 name:                streamfind
-version:             0.1.16.0
+version:             0.1.17.0
 
 extra-source-files:
   - examples/XMonad.hs
