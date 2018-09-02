@@ -113,4 +113,4 @@ searchNetflix q = do
     Just location -> searchNetflix' (defaultCookies location) 1 q
   where
     defaultCookies home = chromeCookies (cookiesLocation home) ".netflix.com"
-    cookiesLocation = flip (++) "/.config/google-chrome/Default/Cookies"
+    cookiesLocation = flip (++) "/.config/chromium/Default/Cookies"

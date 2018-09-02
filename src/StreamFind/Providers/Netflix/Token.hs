@@ -11,7 +11,7 @@ import           StreamFind.Types    (Error)
 import           Text.Regex          (Regex, matchRegex, mkRegex)
 
 tokenPattern :: Regex
-tokenPattern = mkRegex "\"BUILD_IDENTIFIER\":\"([a-f0-9]+)\""
+tokenPattern = mkRegex "\"BUILD_IDENTIFIER\":\"([a-z0-9]+)\""
 
 apiToken :: CookieJar -> IO (Either Error String)
 apiToken cookieJar' = do
